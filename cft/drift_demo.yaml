@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS Jam CFN Template
+Parameters:
+  ProjectName:
+    Description: Name of the ProjectName
+    Type: String
+    Default: awsjam
+  Author:
+    Description: Author (should be meta data)
+    Type: String
+    Default: rdevera@tenable.com
+  Version:
+    Description: Version
+    Type: String
+    Default: v2
+Resources:
+  Centos7EC2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: t2.micro
+      ImageId:  !FindInMap 
+        - RegionMap
+        - !Ref 'AWS::Region'
+        - AAAMI
+      NetworkInterfaces:
+         - AssociatePublicIpAddress: "true"
+           PrivateIpAddress: '10.1.2.10'
+           DeviceIndex: "0"
+           GroupSet:
+             - Ref: AwsPublicSecurityGroup
+           SubnetId: 
+            Ref: AwsJamPublicSubnet
+           DeleteOnTermination: "true"
+      Tags:
+        - Key: Name
+          Value: "drift_demo"
+  AwsInternalSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: comm between internal networks
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 10.0.0.0/16
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 10.1.0.0/16
+      VpcId: !Ref AWSJamVPC
+      Tags:
+        - Key: Name
+          Value: "drift_demo"
+  AWSJamVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.1.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: fddde793-4fce-4f6f-939d-0d8781d3ba3d
+  AWSJamInternalSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref AWSJamVPC
+      CidrBlock: 10.1.2.0/24
+      AvailabilityZone: !Select 
+        - '0'
+        - !GetAZs ''
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: d1663f3a-2a13-4f2e-bf43-8adbf683a5cc
+  AwsJamIGW:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties: {}
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: b9b95cb8-e623-40d8-9c19-b6c361c76e79
+  AwsJamRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref AWSJamVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 098c11b6-3f03-4c58-bd8a-be133ef73fe9
+  AwsJamPublicRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref AwsJamRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: 
+        Ref: AwsJamIGW
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 0073d26b-d5df-4cf1-81cd-f8dad8f8ece7
+    DependsOn:
+      - AwsJamIGW
+  EC2VPCG3CQWV:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref AWSJamVPC
+      InternetGatewayId: !Ref AwsJamIGW
+  AwsJamPublicSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref AWSJamVPC
+      CidrBlock: 10.1.1.0/24
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: ed11ad6b-d0c4-4304-bcba-34b112fbb9bd
+Outputs:
+Mappings:
+  RegionMap:
+    us-east-1:
+      GUACAMI: ami-0d002f4946ae7d1b7
+      W10AMI: ami-00b386e7d7fb65fdc
+      AAAMI: ami-03cc9219324f8a4e5
+    us-west-2:
+      GUACAMI: ami-0a54e209cde0106f3
+      AAAMI: ami-0538377e5d743b7d1
+    us-west-1:
+      AAAMI: ami-02c002e04fc829c12
