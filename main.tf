@@ -12,14 +12,14 @@ terraform {
 
 provider "random" {}
 resource "random_pet" "bucket_name" {
-  length = 2
+  length    = 2
   separator = "-"
-  prefix = "tenable-jam"
+  prefix    = "tenable-jam"
 }
 
 #provider "aws" {
 #  region  = "us-east-1"
- # shared_config_files = [ $HOME/.aws/config ]
+# shared_config_files = [ $HOME/.aws/config ]
 #  shared_credentials_files = [ $HOME/.aws/credentials]
 #  profile = "demoprofile"
 #}
@@ -116,14 +116,14 @@ resource "aws_security_group" "prod_web" {
     from_port = 80
     to_port   = 80
     protocol  = "tcp"
-//    cidr_blocks = ["0.0.0.0/0"]
+    //    cidr_blocks = ["0.0.0.0/0"]
     cidr_blocks = ["172.31.0.0/28"]
   }
   ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-//    cidr_blocks = ["0.0.0.0/0"]
+    from_port = 443
+    to_port   = 443
+    protocol  = "tcp"
+    //    cidr_blocks = ["0.0.0.0/0"]
     cidr_blocks = ["172.31.0.0/28"]
   }
   egress {
@@ -136,4 +136,28 @@ resource "aws_security_group" "prod_web" {
   tags = {
     Name = "drift_demo"
   }
+}
+resource "aws_s3_bucket_policy" "awsjamdemo_bucketpolicy" {
+  bucket = aws_s3_bucket.awsjamdemo_bucket.id
+
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "awsjamdemo_bucket-restrict-access-to-users-or-roles",
+      "Effect": "Allow",
+      "Principal": [
+        {
+          "AWS": [
+            "<aws_policy_role_arn>"
+          ]
+        }
+      ],
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::awsjamdemo_bucket/*"
+    }
+  ]
+}
+POLICY
 }
